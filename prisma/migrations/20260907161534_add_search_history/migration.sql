@@ -1,0 +1,6 @@
+-- CreateTable
+CREATE TABLE "search_history" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "username" TEXT NOT NULL,
+    "searched_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

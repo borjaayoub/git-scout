@@ -1,0 +1,16 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+model SearchHistory {
+  id         Int      @id @default(autoincrement())
+  username   String
+  searchedAt DateTime @default(now()) @map("searched_at")
+
+  @@map("search_history")
+}

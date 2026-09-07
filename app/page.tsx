@@ -1,13 +1,15 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import type { GitHubFetchError, GitHubUserData } from "@/lib/github/types";
+import type { RecentSearch } from "@/lib/search-history/types";
 import Button from "./components/ui/Button";
 import Input from "./components/ui/Input";
 import ProfileCard from "./components/ProfileCard";
 import RepoList from "./components/RepoList";
 import ErrorState from "./components/ErrorState";
+import RecentSearches from "./components/RecentSearches";
 
 type Status = "idle" | "loading" | "success" | "error";
 type RepoType = "all" | "original" | "forks";
@@ -19,6 +21,39 @@ export default function Home() {
   const [error, setError] = useState<GitHubFetchError | null>(null);
   const [languageFilter, setLanguageFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<RepoType>("all");
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+
+  async function loadRecentSearches() {
+    try {
+      const response = await fetch("/api/search-history");
+      if (!response.ok) return;
+      const payload: { searches: RecentSearch[] } = await response.json();
+      setRecentSearches(payload.searches);
+    } catch {
+      // Recent searches are a convenience list; failing to load them
+      // must never block or error the page.
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await fetch("/api/search-history");
+        if (!response.ok || cancelled) return;
+        const payload: { searches: RecentSearch[] } = await response.json();
+        if (!cancelled) setRecentSearches(payload.searches);
+      } catch {
+        // Recent searches are a convenience list; failing to load them
+        // must never block or error the page.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function runSearch(username: string) {
     const trimmed = username.trim();
@@ -38,6 +73,12 @@ export default function Home() {
         setStatus("success");
         setLanguageFilter("all");
         setTypeFilter("all");
+        fetch("/api/search-history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: trimmed }),
+        }).catch(() => {});
+        void loadRecentSearches();
         return;
       }
 
@@ -75,6 +116,14 @@ export default function Home() {
           {isLoading ? "Searching…" : "Search"}
         </Button>
       </form>
+
+      <RecentSearches
+        searches={recentSearches}
+        onSelect={(username) => {
+          setQuery(username);
+          void runSearch(username);
+        }}
+      />
 
       {status === "success" && data ? (
         <div className="flex flex-col gap-6">
