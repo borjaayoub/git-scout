@@ -10,12 +10,15 @@ import RepoList from "./components/RepoList";
 import ErrorState from "./components/ErrorState";
 
 type Status = "idle" | "loading" | "success" | "error";
+type RepoType = "all" | "original" | "forks";
 
 export default function Home() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [data, setData] = useState<GitHubUserData | null>(null);
   const [error, setError] = useState<GitHubFetchError | null>(null);
+  const [languageFilter, setLanguageFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<RepoType>("all");
 
   async function runSearch(username: string) {
     const trimmed = username.trim();
@@ -33,6 +36,8 @@ export default function Home() {
         const payload: GitHubUserData = await response.json();
         setData(payload);
         setStatus("success");
+        setLanguageFilter("all");
+        setTypeFilter("all");
         return;
       }
 
@@ -74,7 +79,14 @@ export default function Home() {
       {status === "success" && data ? (
         <div className="flex flex-col gap-6">
           <ProfileCard profile={data.profile} />
-          <RepoList repos={data.repos} username={data.profile.login} />
+          <RepoList
+            repos={data.repos}
+            username={data.profile.login}
+            languageFilter={languageFilter}
+            onLanguageChange={setLanguageFilter}
+            typeFilter={typeFilter}
+            onTypeChange={setTypeFilter}
+          />
         </div>
       ) : null}
 
